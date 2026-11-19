@@ -7,6 +7,7 @@ import android.widget.CalendarView
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import com.example.studyplanner.data.Task
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -28,6 +29,9 @@ class CalendarActivity : AppCompatActivity() {
 
     // "23 Nov" for the header
     private val titleFormat = SimpleDateFormat("d MMM", Locale.ENGLISH)
+
+    // "14:30" for each row
+    private val timeFormat = SimpleDateFormat("HH:mm", Locale.ENGLISH)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -61,6 +65,10 @@ class CalendarActivity : AppCompatActivity() {
         val end = endOfDay(dayMillis)
         Log.d(TAG, "Day range: $start (${Date(start)}) .. $end (${Date(end)})")
     }
+
+    // One list row: "14:30 · Math quiz"
+    private fun formatTask(task: Task): String =
+        "${timeFormat.format(Date(task.deadline))} · ${task.title}"
 
     // 00:00:00.000 of the day that contains [millis]
     private fun startOfDay(millis: Long): Long {
