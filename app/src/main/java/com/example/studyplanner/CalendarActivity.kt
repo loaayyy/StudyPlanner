@@ -1,13 +1,18 @@
 package com.example.studyplanner
 
 import android.os.Bundle
-import android.util.Log
 import android.widget.ArrayAdapter
 import android.widget.CalendarView
 import android.widget.ListView
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.lifecycleScope
+import androidx.lifecycle.repeatOnLifecycle
+import com.example.studyplanner.data.AppDatabase
 import com.example.studyplanner.data.Task
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Date
@@ -33,6 +38,9 @@ class CalendarActivity : AppCompatActivity() {
     // "14:30" for each row
     private val timeFormat = SimpleDateFormat("HH:mm", Locale.ENGLISH)
 
+    // The coroutine that is collecting the current day's tasks
+    private var loadJob: Job? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_calendar)
@@ -56,14 +64,31 @@ class CalendarActivity : AppCompatActivity() {
         }
     }
 
-    // Remember the picked day and update the header
+    // Remember the picked day, update the header and load its tasks
     private fun selectDay(dayMillis: Long) {
         selectedDay = dayMillis
         tvDayTitle.text = "Tasks on ${titleFormat.format(Date(dayMillis))}"
+        loadTasks(dayMillis)
+    }
+
+    // Show every task (from all subjects) whose deadline falls inside that day
+    private fun loadTasks(dayMillis: Long) {
+        // Stop the previous day's collector first, or it keeps pushing old tasks into the list
+        loadJob?.cancel()
 
         val start = startOfDay(dayMillis)
         val end = endOfDay(dayMillis)
-        Log.d(TAG, "Day range: $start (${Date(start)}) .. $end (${Date(end)})")
+        val taskDao = AppDatabase.getInstance(this).taskDao()
+
+        loadJob = lifecycleScope.launch {
+            // Collect only while the screen is visible; Room runs the query off the main thread
+            repeatOnLifecycle(Lifecycle.State.STARTED) {
+                taskDao.getBetween(start, end).collect { tasks ->
+                    adapter.clear()
+                    adapter.addAll(tasks.map { formatTask(it) })
+                }
+            }
+        }
     }
 
     // One list row: "14:30 · Math quiz"
@@ -90,9 +115,5 @@ class CalendarActivity : AppCompatActivity() {
         cal.set(Calendar.SECOND, 59)
         cal.set(Calendar.MILLISECOND, 999)
         return cal.timeInMillis
-    }
-
-    companion object {
-        private const val TAG = "CalendarActivity"
     }
 }
