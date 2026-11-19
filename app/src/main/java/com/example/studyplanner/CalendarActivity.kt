@@ -63,10 +63,20 @@ class CalendarActivity : AppCompatActivity() {
             selectDay(cal.timeInMillis)
         }
 
-        // First open: highlight today and load today's tasks right away
-        val today = System.currentTimeMillis()
-        calendarView.date = today
-        selectDay(today)
+        // First open: today. After a rotation: the day that was selected before it
+        val startDay = if (savedInstanceState != null && savedInstanceState.containsKey(KEY_SELECTED_DAY)) {
+            savedInstanceState.getLong(KEY_SELECTED_DAY)
+        } else {
+            System.currentTimeMillis()
+        }
+        calendarView.date = startDay
+        selectDay(startDay)
+    }
+
+    // Called before the activity is destroyed on rotation: keep the selected day
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putLong(KEY_SELECTED_DAY, selectedDay)
     }
 
     // Remember the picked day, update the header and load its tasks
@@ -120,5 +130,9 @@ class CalendarActivity : AppCompatActivity() {
         cal.set(Calendar.SECOND, 59)
         cal.set(Calendar.MILLISECOND, 999)
         return cal.timeInMillis
+    }
+
+    companion object {
+        private const val KEY_SELECTED_DAY = "selected_day"
     }
 }
