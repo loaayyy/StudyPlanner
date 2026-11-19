@@ -62,6 +62,11 @@ class CalendarActivity : AppCompatActivity() {
             cal.set(year, month, dayOfMonth)
             selectDay(cal.timeInMillis)
         }
+
+        // First open: highlight today and load today's tasks right away
+        val today = System.currentTimeMillis()
+        calendarView.date = today
+        selectDay(today)
     }
 
     // Remember the picked day, update the header and load its tasks
